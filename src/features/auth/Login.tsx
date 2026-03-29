@@ -1,9 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import styles from './Login.module.css';
 
 export default function Login() {
   const { state, dispatch } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: string } | null)?.from || '/dashboard';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -13,7 +17,7 @@ export default function Login() {
 
     try {
       const res = await fetch(
-        `http://localhost:4000/users?email=${email}`
+        `http://localhost:5000/users?email=${email}`
       );
       const users = await res.json();
 
@@ -24,10 +28,17 @@ export default function Login() {
 
       const { password: _, ...user } = users[0];
       dispatch({ type: 'LOGIN_SUCCESS', payload: user });
+      navigate(from, { replace: true });
     } catch {
       dispatch({ type: 'LOGIN_FAILURE', payload: 'Erreur de connexion au serveur' });
     }
   }
+
+  useEffect(() => {
+    if (state.user) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [state.user, navigate]);
 
   return (
     <div className={styles.container}>
