@@ -1,0 +1,95 @@
+.appBar {
+  background: linear-gradient(135deg, #1B8C3E 0%, #157a33 100%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px;
+  min-height: 64px;
+  gap: 16px;
+}
+
+.leftSection {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.menuButton {
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.menuButton:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: scale(1.05);
+}
+
+.title {
+  font-weight: 700;
+  font-size: 20px;
+  color: white;
+  letter-spacing: 0.5px;
+}
+
+.rightSection {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.userName {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  min-width: 120px;
+  text-align: right;
+}
+
+.logoutButton {
+  color: white;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  text-transform: capitalize;
+}
+
+.logoutButton:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+.logoutButton:active {
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+@media (max-width: 600px) {
+  .toolbar {
+    padding: 0 12px;
+    min-height: 56px;
+  }
+
+  .title {
+    font-size: 18px;
+  }
+
+  .rightSection {
+    gap: 12px;
+  }
+
+  .userName {
+    display: none;
+  }
+
+  .logoutButton {
+    padding: 4px 12px;
+    font-size: 12px;
+  }
+}
