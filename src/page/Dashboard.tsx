@@ -1,13 +1,16 @@
-import { useState, useEffect } from 'react'; 
-import { useAuth } from '../features/auth/AuthContext'; 
-import api from '../api/axios'; 
+import { useState, useCallback, memo } from 'react'; 
+import { useSelector, useDispatch } from 'react-redux'; 
+import { logout } from '../features/auth/authSlice'; 
+import type { RootState, AppDispatch } from '../store'; 
+import useProjects from '../hooks/useProjects'; 
 import Header from '../components/Header'; 
 import Sidebar from '../components/Sidebar'; 
 import MainContent from '../components/MainContent'; 
-import styles from './Dashboard.module.css'; 
+import styles from './Dashboard.module.css';
+
+const MemoizedSidebar = memo(Sidebar); 
   
 interface Project { id: string; name: string; color: string; } 
-interface Column { id: string; title: string; tasks: string[]; } 
   
 interface ProjectFormProps {
   submitLabel: string;
@@ -59,47 +62,21 @@ function ProjectForm({ submitLabel, onSubmit, onCancel, initialName = '', initia
 } 
   
 export default function Dashboard() { 
-  const { state: authState, dispatch } = useAuth(); 
+  const dispatch = useDispatch<AppDispatch>(); 
+  const authState = useSelector((state: RootState) => state.auth); 
+  const { projects, columns, loading, error, addProject, renameProject, deleteProject } = useProjects(); 
   const [sidebarOpen, setSidebarOpen] = useState(true); 
-  const [projects, setProjects] = useState<Project[]>([]); 
-  const [columns, setColumns] = useState<Column[]>([]); 
-  const [loading, setLoading] = useState(true); 
   const [showForm, setShowForm] = useState(false); 
   const [editingProject, setEditingProject] = useState<Project | null>(null); 
   
-  // GET — charger les données au montage 
-  useEffect(() => { 
-    async function fetchData() { 
-      try { 
-        const [projRes, colRes] = await Promise.all([ 
-          api.get('/projects'), 
-          api.get('/columns'), 
-        ]); 
-        setProjects(projRes.data); 
-        setColumns(colRes.data); 
-      } catch (e) { console.error(e); } 
-      finally { setLoading(false); } 
-    } 
-    fetchData(); 
-  }, []); 
+  // Créer handleRename avant la vérification du loading
+  const handleRename = useCallback((project: Project) => {
+    setEditingProject(project);
+  }, []);
   
-  // POST — ajouter un projet 
-  async function addProject(name: string, color: string) { 
-    const { data } = await api.post('/projects', { name, color }); 
-    setProjects(prev => [...prev, data]); 
-  } 
+  // GET — charger les données au montage (dans le hook useProjects)
   
-  // PUT — renommer un projet 
-  async function renameProject(id: string, name: string, color: string) {
-    await api.put(`/projects/${id}`, { name, color });
-    setProjects(prev => prev.map(p => p.id === id ? { ...p, name, color } : p));
-  }
-  
-  // DELETE — supprimer un projet 
-  async function deleteProject(id: string) {
-    await api.delete(`/projects/${id}`);
-    setProjects(prev => prev.filter(p => p.id !== id));
-  } 
+  // POST — ajouter un projet (dans le hook useProjects)
   
   if (loading) return <div className={styles.loading}>Chargement...</div>; 
   
@@ -109,11 +86,12 @@ export default function Dashboard() {
         title="TaskFlow" 
         onMenuClick={() => setSidebarOpen(p => !p)} 
         userName={authState.user?.name} 
-        onLogout={() => dispatch({ type: 'LOGOUT' })} 
+        onLogout={() => dispatch(logout())} 
       /> 
       <div className={styles.body}> 
-        <Sidebar projects={projects} isOpen={sidebarOpen} onRename={setEditingProject} onDelete={deleteProject} /> 
+        <MemoizedSidebar projects={projects} isOpen={sidebarOpen} onRename={handleRename} onDelete={deleteProject} /> 
         <div className={styles.content}> 
+          {error && <div style={{ backgroundColor: '#ffebee', color: '#c62828', padding: '12px', borderRadius: '4px', marginBottom: '12px' }}>{error}</div>}
           <div className={styles.toolbar}> 
             {!showForm && !editingProject ? ( 
               <button className={styles.addBtn} 
@@ -133,7 +111,7 @@ export default function Dashboard() {
               <ProjectForm 
                 submitLabel="Renommer" 
                 onSubmit={(name: string, color: string) => { 
-                  renameProject(editingProject.id, name, color); 
+                  renameProject(editingProject, name, color); 
                   setEditingProject(null); 
                 }} 
                 onCancel={() => setEditingProject(null)} 
@@ -142,10 +120,39 @@ export default function Dashboard() {
               /> 
             ) : null} 
           </div> 
-          <MainContent columns={columns} /> 
-        </div> 
-      </div> 
+          
+          {/* TEST XSS - Partie 1.1 : Protection JSX normale */}
+          {(() => {
+            const dangerousName = '<img src=x onerror=alert("HACK")>';
+            return (
+              <div style={{ padding: '20px', border: '2px solid red', margin: '20px 0', backgroundColor: '#ffebee' }}>
+                <h3 style={{ color: 'red', marginBottom: '10px' }}>🛡️ TEST XSS - Protection JSX normale</h3>
+                <p><strong>Code dangereux :</strong> {dangerousName}</p>
+                <p><strong>Rendu JSX normal :</strong> <span style={{ backgroundColor: '#f5f5f5', padding: '5px', borderRadius: '4px' }}>{dangerousName}</span></p>
+                <p style={{ fontSize: '12px', color: '#666' }}>Le HTML est affiché comme du texte brut, pas exécuté.</p>
+              </div>
+            );
+          })()}
+          
+          {/* TEST XSS - Partie 1.2 : Danger dangerouslySetInnerHTML */}
+          {(() => {
+            const dangerousName = '<img src=x onerror=alert("HACK")>';
+            return (
+              <div style={{ padding: '20px', border: '2px solid red', margin: '20px 0', backgroundColor: '#ffebee' }}>
+                <h3 style={{ color: 'red', marginBottom: '10px' }}>⚠️ TEST XSS - DANGER dangerouslySetInnerHTML</h3>
+                <p><strong>Code dangereux :</strong> {dangerousName}</p>
+                <p><strong>Rendu avec dangerouslySetInnerHTML :</strong></p>
+                <div dangerouslySetInnerHTML={{ __html: dangerousName }} 
+                     style={{ backgroundColor: '#f5f5f5', padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }} />
+                <p style={{ fontSize: '12px', color: '#d32f2f', fontWeight: 'bold' }}>
+                  ❌ ATTENTION : Le script s'exécute ! JAMAIS utiliser avec des données utilisateur !
+                </p>
+              </div>
+            );
+          })()}
+          
+          <MainContent columns={columns} />
+        </div>
+      </div>
     </div> 
-  ); 
-} 
- 
+  );}

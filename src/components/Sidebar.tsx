@@ -8,8 +8,9 @@ interface SidebarProps {
   onDelete?: (id: string) => void;
 }
 export default function Sidebar({ projects, isOpen, onRename, onDelete }: SidebarProps) {
-return (
-<aside className={`${styles.sidebar} ${isOpen ? styles.open : styles.closed}`}>
+  console.log('Sidebar re-render');
+  return (
+    <aside className={`${styles.sidebar} ${isOpen ? styles.open : styles.closed}`}>
 <h2 className={styles.title}>Mes Projets</h2>
 <ul className={styles.list}>
 {projects.map(p => (

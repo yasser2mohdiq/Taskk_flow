@@ -1,9 +1,18 @@
-import axios from 'axios'; 
-  
-const api = axios.create({ 
-  baseURL: 'http://localhost:5000', 
-  headers: { 'Content-Type': 'application/json' }, 
-  timeout: 5000, 
-}); 
-  
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: 'http://localhost:5000',
+  headers: { 'Content-Type': 'application/json' },
+  timeout: 5000,
+});
+
+// Fonction pour mettre à jour le token
+export function setAuthToken(token: string | null) {
+  if (token) {
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    delete api.defaults.headers.common['Authorization'];
+  }
+}
+
 export default api; 
